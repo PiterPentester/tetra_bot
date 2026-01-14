@@ -1,0 +1,22 @@
+[Unit]
+Description=Tetra Internet Monitor Bot
+After=network-online.target
+Wants=network-online.target
+
+[Service]
+# Replace 'youruser' with your actual username if running as a specific user
+User=youruser
+Group=youruser
+
+# Assuming deployed to /opt/tetra or /home/youruser/tetra
+WorkingDirectory=/home/youruser/tetra
+ExecStart=/home/youruser/tetra/tetra
+
+# Load environment variables
+EnvironmentFile=/home/youruser/tetra/.env
+
+Restart=always
+RestartSec=10
+
+[Install]
+WantedBy=multi-user.target

@@ -19,7 +19,7 @@ spec:
     spec:
       containers:
       - name: tetra
-        image: ghcr.io/piterpentester/tetra_bot:latest # Ensure image pull policy is Never or IfNotPresent if local
+        image: ghcr.io/piterpentester/tetra_bot:b8e50606
         imagePullPolicy: IfNotPresent
         resources:
           requests:

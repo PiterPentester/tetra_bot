@@ -1,0 +1,30 @@
+# Version control
+.git
+.gitignore
+
+# Docker specific
+Dockerfile
+.dockerignore
+
+# Environment files (Sensitive!)
+.env
+.env.*
+
+# Local development binaries
+/tetra
+/tetra-linux-arm64
+
+# K8s manifests (not needed for build)
+k8s/
+
+# Documentation and examples
+README.md
+.env.example
+tetra.service
+Makefile
+
+# IDE and OS specific
+.idea/
+.vscode/
+.DS_Store
+Thumbs.db

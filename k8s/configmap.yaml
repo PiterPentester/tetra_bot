@@ -1,0 +1,12 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: tetra-config
+  namespace: default
+data:
+  DOWNLOAD_THRESHOLD: "80.0"
+  UPLOAD_THRESHOLD: "100.0"
+  CHECK_INTERVAL_MIN: "30"
+  DAILY_REPORT_HOUR: "8"
+  TZ: "Europe/Kyiv"
+  LOG_LEVEL: "info"

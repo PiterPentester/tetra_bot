@@ -1,0 +1,56 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: tetra
+  namespace: default
+  labels:
+    app: tetra
+spec:
+  replicas: 1
+  strategy:
+    type: Recreate # Avoid concurrency issues with alerting if 2 pods run briefly
+  selector:
+    matchLabels:
+      app: tetra
+  template:
+    metadata:
+      labels:
+        app: tetra
+    spec:
+      containers:
+      - name: tetra
+        image: ghcr.io/piterpentester/tetra_bot:latest # Ensure image pull policy is Never or IfNotPresent if local
+        imagePullPolicy: IfNotPresent
+        resources:
+          requests:
+            cpu: "50m" # Low CPU requirement
+            memory: "64Mi"
+          limits:
+            cpu: "500m" # Allow burst for speedtest
+            memory: "256Mi"
+        envFrom:
+        - configMapRef:
+            name: tetra-config
+        - secretRef:
+            name: tetra-secrets
+        livenessProbe:
+          httpGet:
+            path: /healthz
+            port: 8080
+          initialDelaySeconds: 10
+          periodSeconds: 30
+        readinessProbe:
+          httpGet:
+            path: /readyz
+            port: 8080
+          initialDelaySeconds: 5
+          periodSeconds: 10
+        securityContext:
+          runAsUser: 1000
+          runAsGroup: 1000
+          allowPrivilegeEscalation: false
+          capabilities:
+            drop:
+            - ALL
+          readOnlyRootFilesystem: true
+      restartPolicy: Always

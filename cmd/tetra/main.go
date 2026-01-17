@@ -83,12 +83,18 @@ func main() {
 		return ""
 	}
 
+	// Define stats action
+	getStats := func(ctx context.Context) string {
+		summary := statsMgr.GetLast24hSummary(time.Now(), cfg.DownloadThreshold, cfg.UploadThreshold)
+		return summary.String()
+	}
+
 	// Init Telegram Bot with retry
 	var bot *telegram.Bot
 	for {
 		bot, err = telegram.New(cfg, func(ctx context.Context) string {
 			return runTest(ctx, true)
-		})
+		}, getStats)
 		if err == nil {
 			break
 		}

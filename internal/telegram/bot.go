@@ -12,17 +12,19 @@ import (
 )
 
 type Bot struct {
-	client     *bot.Bot
-	conf       *config.Config
-	msgQueue   chan string
-	testAction func(context.Context) string // callback for /test command
+	client      *bot.Bot
+	conf        *config.Config
+	msgQueue    chan string
+	testAction  func(context.Context) string // callback for /test command
+	statsAction func(context.Context) string // callback for /stats command
 }
 
-func New(cfg *config.Config, testAction func(context.Context) string) (*Bot, error) {
+func New(cfg *config.Config, testAction func(context.Context) string, statsAction func(context.Context) string) (*Bot, error) {
 	b := &Bot{
-		conf:       cfg,
-		msgQueue:   make(chan string, 100), // Buffer for burst alerts
-		testAction: testAction,
+		conf:        cfg,
+		msgQueue:    make(chan string, 100), // Buffer for burst alerts
+		testAction:  testAction,
+		statsAction: statsAction,
 	}
 
 	opts := []bot.Option{
@@ -42,6 +44,10 @@ func New(cfg *config.Config, testAction func(context.Context) string) (*Bot, err
 	tBot.RegisterHandler(bot.HandlerTypeMessageText, "/help", bot.MatchTypeExact, b.helpHandler)
 	tBot.RegisterHandler(bot.HandlerTypeMessageText, "/test", bot.MatchTypeExact, b.testHandler)
 	tBot.RegisterHandler(bot.HandlerTypeMessageText, "/speed", bot.MatchTypeExact, b.testHandler)
+	tBot.RegisterHandler(bot.HandlerTypeMessageText, "/stats", bot.MatchTypeExact, b.statsHandler)
+	tBot.RegisterHandler(bot.HandlerTypeMessageText, "Test Speed", bot.MatchTypeExact, b.testHandler)
+	tBot.RegisterHandler(bot.HandlerTypeMessageText, "Get Stats", bot.MatchTypeExact, b.statsHandler)
+	tBot.RegisterHandler(bot.HandlerTypeMessageText, "Help", bot.MatchTypeExact, b.helpHandler)
 
 	return b, nil
 }
@@ -74,6 +80,21 @@ func (b *Bot) senderLoop(ctx context.Context) {
 	}
 }
 
+func (b *Bot) getMainKeyboard() *models.ReplyKeyboardMarkup {
+	return &models.ReplyKeyboardMarkup{
+		Keyboard: [][]models.KeyboardButton{
+			{
+				{Text: "Test Speed"},
+				{Text: "Get Stats"},
+			},
+			{
+				{Text: "Help"},
+			},
+		},
+		ResizeKeyboard: true,
+	}
+}
+
 func (b *Bot) sendMessageWithRetry(ctx context.Context, text string) {
 	backoff := time.Second
 	maxBackoff := 30 * time.Second
@@ -81,9 +102,10 @@ func (b *Bot) sendMessageWithRetry(ctx context.Context, text string) {
 
 	for i := 0; i < maxRetries; i++ {
 		_, err := b.client.SendMessage(ctx, &bot.SendMessageParams{
-			ChatID:    b.conf.ChatID,
-			Text:      text,
-			ParseMode: models.ParseModeHTML,
+			ChatID:      b.conf.ChatID,
+			Text:        text,
+			ParseMode:   models.ParseModeHTML,
+			ReplyMarkup: b.getMainKeyboard(),
 		})
 		if err == nil {
 			return
@@ -110,9 +132,10 @@ func (b *Bot) startHandler(ctx context.Context, bb *bot.Bot, update *models.Upda
 		"I will periodically check your internet speed and notify you if it drops below the configured thresholds.\n" +
 		"Use /help to see available commands."
 	_, err := b.client.SendMessage(ctx, &bot.SendMessageParams{
-		ChatID:    update.Message.Chat.ID,
-		Text:      msg,
-		ParseMode: models.ParseModeHTML,
+		ChatID:      update.Message.Chat.ID,
+		Text:        msg,
+		ParseMode:   models.ParseModeHTML,
+		ReplyMarkup: b.getMainKeyboard(),
 	})
 	if err != nil {
 		log.Error().Err(err).Msg("Failed to send start message")
@@ -122,12 +145,14 @@ func (b *Bot) startHandler(ctx context.Context, bb *bot.Bot, update *models.Upda
 func (b *Bot) helpHandler(ctx context.Context, bb *bot.Bot, update *models.Update) {
 	msg := "📋 <b>Available Commands:</b>\n" +
 		"/test - Run an immediate speed test\n" +
+		"/stats - Get statistics for the last 24h\n" +
 		"/help - Show this help message\n" +
 		"/start - Welcome message"
 	_, err := b.client.SendMessage(ctx, &bot.SendMessageParams{
-		ChatID:    update.Message.Chat.ID,
-		Text:      msg,
-		ParseMode: models.ParseModeHTML,
+		ChatID:      update.Message.Chat.ID,
+		Text:        msg,
+		ParseMode:   models.ParseModeHTML,
+		ReplyMarkup: b.getMainKeyboard(),
 	})
 	if err != nil {
 		log.Error().Err(err).Msg("Failed to send help message")
@@ -145,19 +170,31 @@ func (b *Bot) testHandler(ctx context.Context, bb *bot.Bot, update *models.Updat
 		log.Error().Err(err).Msg("Failed to send test starting message")
 	}
 
-	// Execute test (blocking call in this goroutine is fine for low volume,
-	// but strictly speaking should be async if many users. Single user bot implies it's fine)
-	// Actually, the prompt says "runs test ... and sends result".
-
+	// Execute test
 	resultMsg := b.testAction(ctx)
 
 	_, err = b.client.SendMessage(ctx, &bot.SendMessageParams{
-		ChatID:    update.Message.Chat.ID,
-		Text:      resultMsg,
-		ParseMode: models.ParseModeHTML,
+		ChatID:      update.Message.Chat.ID,
+		Text:        resultMsg,
+		ParseMode:   models.ParseModeHTML,
+		ReplyMarkup: b.getMainKeyboard(),
 	})
 	if err != nil {
 		log.Error().Err(err).Msg("Failed to send test result message")
+	}
+}
+
+func (b *Bot) statsHandler(ctx context.Context, bb *bot.Bot, update *models.Update) {
+	resultMsg := b.statsAction(ctx)
+
+	_, err := b.client.SendMessage(ctx, &bot.SendMessageParams{
+		ChatID:      update.Message.Chat.ID,
+		Text:        resultMsg,
+		ParseMode:   models.ParseModeHTML,
+		ReplyMarkup: b.getMainKeyboard(),
+	})
+	if err != nil {
+		log.Error().Err(err).Msg("Failed to send stats message")
 	}
 }
 

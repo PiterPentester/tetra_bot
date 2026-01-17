@@ -19,7 +19,7 @@ spec:
     spec:
       containers:
       - name: tetra
-        image: ghcr.io/piterpentester/tetra_bot:b8e50606
+        image: ghcr.io/piterpentester/tetra_bot:024229cd
         imagePullPolicy: IfNotPresent
         resources:
           requests:

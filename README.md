@@ -1,4 +1,12 @@
+<div align="center">
+
 # Tetra (Time to Restart) 🤖
+
+[![CI/CD Status](https://github.com/PiterPentester/tetra_bot/actions/workflows/ci.yml/badge.svg)](https://github.com/PiterPentester/tetra_bot/actions/workflows/ci.yml)
+[![Go Version](https://img.shields.io/badge/go-1.24-blue.svg)](https://golang.org/dl/)
+
+<img src="./assets/tetra_logo.jpg" alt="Tetra Logo">
+</div>
 
 Tetra is a robust Golang-based Telegram bot designed to run on Single Board Computers (SBCs) like the Orange Pi 5. It continuously monitors your internet connection quality and alerts you when performance drops below acceptable levels.
 
@@ -6,10 +14,14 @@ Tetra is a robust Golang-based Telegram bot designed to run on Single Board Comp
 
 - ⏱ **Periodic Speed Tests**: Automatically checks internet speed every 30 minutes (configurable).
 - 🚨 **Smart Alerts**: Sends a Telegram notification immediately if Download < 80 Mbps or Upload < 100 Mbps.
-- 📊 **Daily Reports**: Sends a summary at 08:00 (Kyiv time) with 24h statistics (Avg/Min/Max speeds, Ping, Alert counts).
-- 🎮 **Manual Control**: Use `/test` (or `/speed`) to manually trigger a test at any time.
+- 📊 **Daily Reports & On-Demand Stats**: Sends a summary at 08:00 (Kyiv time) or request it anytime via `/stats` with 24h statistics (Avg/Min/Max speeds, Ping, Alert counts).
+- 🎮 **Interactive Control**: Use the built-in keyboard buttons ("Test Speed", "Get Stats") or commands (`/test`, `/stats`) for easy interaction.
 - 💾 **Efficiency**: Written in Go, uses minimal resources, stores stats in-memory.
 - 🛡 **Resilient**: Retries failed tests, precise error handling, and structured logging.
+
+<div align="center">
+<img src="./assets/screenshot.png" alt="Tetra Screenshot">
+</div>
 
 ## Prerequisites
 
@@ -31,10 +43,10 @@ Tetra is a robust Golang-based Telegram bot designed to run on Single Board Comp
 
 #### Method A: Build on Device (Recommended if Go is installed)
 
-1. **Install Go 1.23+**:
+1. **Install Go 1.24+**:
    ```bash
-   wget https://go.dev/dl/go1.23.0.linux-arm64.tar.gz
-   sudo rm -rf /usr/local/go && sudo tar -C /usr/local -xzf go1.23.0.linux-arm64.tar.gz
+   wget https://go.dev/dl/go1.24.1.linux-arm64.tar.gz
+   sudo rm -rf /usr/local/go && sudo tar -C /usr/local -xzf go1.24.1.linux-arm64.tar.gz
    export PATH=$PATH:/usr/local/go/bin
    ```
 
@@ -42,8 +54,8 @@ Tetra is a robust Golang-based Telegram bot designed to run on Single Board Comp
    ```bash
    mkdir -p ~/projects
    cd ~/projects
-   git clone <your-repo-url> tetra
-   cd tetra
+   git clone https://github.com/PiterPentester/tetra_bot.git
+   cd tetra_bot
    
    # Build optimized binary
    go build -ldflags "-s -w" -o tetra ./cmd/tetra
@@ -58,7 +70,7 @@ Build on your local machine and transfer the binary to the Pi.
 GOOS=linux GOARCH=arm64 go build -ldflags "-s -w" -o tetra-linux-arm64 ./cmd/tetra
 
 # Transfer to Pi:
-scp tetra-linux-arm64 youruser@orangepi:~/projects/tetra/tetra
+scp tetra-linux-arm64 youruser@orangepi:~/projects/tetra_bot/tetra
 ```
 
 ### 3. Configuration
@@ -86,7 +98,7 @@ scp tetra-linux-arm64 youruser@orangepi:~/projects/tetra/tetra
 ./tetra
 ```
 
-You should see logs indicating the bot has started. Send `/start` to your bot in Telegram to verify connectivity.
+You should see logs indicating the bot has started. Send `/start` to your bot in Telegram to verify connectivity and see the interactive menu.
 
 ## 🛠 Systemd Service (Auto-start)
 
@@ -120,6 +132,8 @@ Tetra is ready for Kubernetes. Since you are running **k3s on Orange Pi 5** (ARM
 ### 1. Build the Docker Image
 
 You need to build the image and make it available to k3s.
+
+> **Note**: A GitHub Actions workflow is configured to automatically build and push the Docker image to GHCR and update the deployment manifest on commits to the `main` branch.
 
 **Option A: Build directly on the Pi (easiest for k3s)**
 

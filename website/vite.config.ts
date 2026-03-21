@@ -5,6 +5,7 @@ import { defineConfig, loadEnv } from 'vite';
 
 export default defineConfig(({ mode }) => {
   return {
+    base: '/tetra_bot/',
     plugins: [react(), tailwindcss()],
     resolve: {
       alias: {

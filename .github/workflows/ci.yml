@@ -3,8 +3,14 @@ name: Tetra CI/CD
 on:
   push:
     branches: [ "master", "main" ]
+    paths-ignore:
+      - 'website/**'
+      - '.github/workflows/webpage.yml'
   pull_request:
     branches: [ "master", "main" ]
+    paths-ignore:
+      - 'website/**'
+      - '.github/workflows/webpage.yml'
   workflow_dispatch:
     inputs:
       push_image:

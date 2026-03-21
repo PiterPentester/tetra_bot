@@ -96,35 +96,44 @@ func (b *Bot) getMainKeyboard() *models.ReplyKeyboardMarkup {
 }
 
 func (b *Bot) sendMessageWithRetry(ctx context.Context, text string) {
-	backoff := time.Second
+	baseBackoff := time.Second
 	maxBackoff := 30 * time.Second
 	maxRetries := 5
 
-	for i := 0; i < maxRetries; i++ {
-		_, err := b.client.SendMessage(ctx, &bot.SendMessageParams{
-			ChatID:      b.conf.ChatID,
-			Text:        text,
-			ParseMode:   models.ParseModeHTML,
-			ReplyMarkup: b.getMainKeyboard(),
-		})
-		if err == nil {
-			return
+	for _, chatID := range b.conf.ChatIDs {
+		// Reset retry logic for each chat ID
+		backoff := baseBackoff
+		sent := false
+
+		for i := 0; i < maxRetries; i++ {
+			_, err := b.client.SendMessage(ctx, &bot.SendMessageParams{
+				ChatID:      chatID,
+				Text:        text,
+				ParseMode:   models.ParseModeHTML,
+				ReplyMarkup: b.getMainKeyboard(),
+			})
+			if err == nil {
+				sent = true
+				break
+			}
+
+			log.Error().Err(err).Int64("chat_id", chatID).Msgf("Failed to send telegram message (attempt %d/%d). Retrying in %v...", i+1, maxRetries, backoff)
+
+			select {
+			case <-ctx.Done():
+				return
+			case <-time.After(backoff):
+			}
+
+			backoff *= 2
+			if backoff > maxBackoff {
+				backoff = maxBackoff
+			}
 		}
-
-		log.Error().Err(err).Msgf("Failed to send telegram message (attempt %d/%d). Retrying in %v...", i+1, maxRetries, backoff)
-
-		select {
-		case <-ctx.Done():
-			return
-		case <-time.After(backoff):
-		}
-
-		backoff *= 2
-		if backoff > maxBackoff {
-			backoff = maxBackoff
+		if !sent {
+			log.Error().Int64("chat_id", chatID).Msg("Failed to send telegram message after max retries")
 		}
 	}
-	log.Error().Msg("Failed to send telegram message after max retries")
 }
 
 func (b *Bot) startHandler(ctx context.Context, bb *bot.Bot, update *models.Update) {

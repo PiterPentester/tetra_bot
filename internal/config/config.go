@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"os"
 	"strconv"
+	"strings"
 	"time"
 
 	"github.com/joho/godotenv"
@@ -11,7 +12,7 @@ import (
 
 type Config struct {
 	TelegramToken     string `json:"-"`
-	ChatID            int64
+	ChatIDs           []int64
 	DownloadThreshold float64
 	UploadThreshold   float64
 	CheckInterval     time.Duration
@@ -21,7 +22,7 @@ type Config struct {
 }
 
 func (c Config) String() string {
-	return fmt.Sprintf("Config{ChatID:%d, Levels: DL=%.0f/UL=%.0f}", c.ChatID, c.DownloadThreshold, c.UploadThreshold)
+	return fmt.Sprintf("Config{ChatIDs:%v, Levels: DL=%.0f/UL=%.0f}", c.ChatIDs, c.DownloadThreshold, c.UploadThreshold)
 }
 
 func Load() (*Config, error) {
@@ -33,18 +34,30 @@ func Load() (*Config, error) {
 		return nil, fmt.Errorf("TELEGRAM_TOKEN is required")
 	}
 
-	chatIDStr := os.Getenv("CHAT_ID")
-	if chatIDStr == "" {
+	chatIDsStr := os.Getenv("CHAT_ID")
+	if chatIDsStr == "" {
 		return nil, fmt.Errorf("CHAT_ID is required")
 	}
-	chatID, err := strconv.ParseInt(chatIDStr, 10, 64)
-	if err != nil {
-		return nil, fmt.Errorf("invalid CHAT_ID: %w", err)
+
+	var chatIDs []int64
+	for _, idStr := range strings.Split(chatIDsStr, ",") {
+		idStr = strings.TrimSpace(idStr)
+		if idStr == "" {
+			continue
+		}
+		id, err := strconv.ParseInt(idStr, 10, 64)
+		if err != nil {
+			return nil, fmt.Errorf("invalid CHAT_ID element '%s': %w", idStr, err)
+		}
+		chatIDs = append(chatIDs, id)
+	}
+	if len(chatIDs) == 0 {
+		return nil, fmt.Errorf("CHAT_ID must contain at least one valid ID")
 	}
 
 	cfg := &Config{
 		TelegramToken:     token,
-		ChatID:            chatID,
+		ChatIDs:           chatIDs,
 		DownloadThreshold: getEnvFloat("DOWNLOAD_THRESHOLD", 80.0),
 		UploadThreshold:   getEnvFloat("UPLOAD_THRESHOLD", 100.0),
 		CheckInterval:     getEnvDuration("CHECK_INTERVAL_MIN", 30*time.Minute),

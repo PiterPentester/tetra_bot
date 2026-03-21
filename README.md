@@ -84,7 +84,7 @@ scp tetra-linux-arm64 youruser@orangepi:~/projects/tetra_bot/tetra
 2. Fill in your details:
    ```properties
    TELEGRAM_TOKEN=123456:ABC...
-   CHAT_ID=123456789
+   CHAT_ID=123456789,987654321
    DOWNLOAD_THRESHOLD=80.0
    UPLOAD_THRESHOLD=100.0
    CHECK_INTERVAL_MIN=30
@@ -163,7 +163,7 @@ docker buildx build --platform linux/arm64 -t youruser/tetra:latest --push .
    ```yaml
    stringData:
      TELEGRAM_TOKEN: "123456:ABC..."
-     CHAT_ID: "123456789"
+     CHAT_ID: "123456789,987654321"
    ```
    *Note: `stringData` allows you to paste plain text; K8s will base64 encode it automatically.*
 
